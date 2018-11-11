@@ -76,22 +76,19 @@ app.post('/sms', (req, res) => {
           let list = [];
           let parkingListPromise = new Promise((resolve, reject) => {
             for (let i = 0; i < Math.min(5, parkings.length); i++) {
-                findParking(parkings[i]).then(result2 => {
-                  let placesJson = JSON.parse(result2);
-                  let placeResult = placesJson.Response.View[0].Result[0].Location.Address.Label;
-                  //let resultAmount = Math.min(1, placeResults.length);
+                list[i] = findParking(parkings[i]);
+            }
+          });
 
-                  list[i] = "\n " + (i + 1) + ". " + placeResult + "\n";
-
-                  if (i == Math.min(4, (parkings.length - 1))) {
-                    resolve(list);
-                  }
-                });
-             }
-           });
-
-          parkingListPromise.then(list => {
-            let message = "Hey, pick a parking spot: \n" + list;
+          Promise.all(list).then(function(values) {
+			let addresses = [];
+			for (let g = 0; g < values.length; g++) {
+				let parsable = JSON.parse(values[g]);
+				let responsable = parsable.Response.View[0].Result[0].Location.Address.Label;
+				addresses[g] = " " + (g+1) + ". " + responsable;
+			}
+			
+            let message = "Hey, pick a parking spot: \n" + addresses;
             req.session.parkingList = parkings;
 			req.session.lati = 42.3451;
 			req.session.longi = -71.0993;
