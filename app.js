@@ -50,7 +50,7 @@ app.get('/', (req, res) => {
           "url": "https://apis.solarialabs.com/shine/v1/parking-rules/meters",
           "method": "GET",
           "qs": {
-              "lat": 	42.3451,
+              "lat": 	42.3451, // FIXED RN CHANGE LATER
               "long": -71.0993,
               //"lat": coordinates.lat,
               //"long": coordinates.long,
@@ -61,7 +61,7 @@ app.get('/', (req, res) => {
       request.get(options,(err,resp,body) => {
         let parkings = JSON.parse(body);
         let list = [];
-        let fuckfuckfuck = new Promise((resolve, reject) => {
+        let parkingListPromise = new Promise((resolve, reject) => {
           for (let i = 0; i < Math.min(5, parkings.length); i++) {
               findParking(parkings[i]).then(result2 => {
                 let placesJson = JSON.parse(result2);
@@ -69,7 +69,7 @@ app.get('/', (req, res) => {
                 //let resultAmount = Math.min(1, placeResults.length);
 
                 //parkingDescriptions[i] = "Wtfwtfwtf";
-                list[i] = placeResult;
+                list[i] = (i + 1) + ". " + placeResult + "\n";
 
                 if (i == Math.min(4, (parkings.length - 1))) {
                   resolve(list);
@@ -78,12 +78,56 @@ app.get('/', (req, res) => {
           }
         });
 
-        fuckfuckfuck.then(wtfwtfwtf => {
-          res.end(wtfwtfwtf.toString());
+        parkingListPromise.then(list => {
+          /*
+          let output = "";
+          for (let j = 0; j < list.length; j++) {
+            output = output + list[j].toString();
+          }
+          */
+          res.write(list.toString());
+
+          // user chooses parking spot here, let this be list[c];
+          let c = 3;
+
+          //location1 = options.qs.lat, options.qs.long
+          //location2 = parkings[i].Latitude, parkings[i].Longitude
+
+          findRoute(options.qs.lat, options.qs.long, parkings[c].Latitude, parkings[c].Longitude).then(result3 => {
+            let routeJson = JSON.parse(result3);
+            let justDirections = routeJson.response.route[0].leg[0].maneuver;
+
+
+            let instructions = "";
+            for (let a = 0; a < justDirections.length; a++) {
+              instructions += a + ". " + justDirections[a].instruction + "\n";
+            }
+
+            res.write(instructions.toString());
+            res.end();
+          });
         });
       });
     });
 });
+
+function findRoute(l1lat, l1long, l2lat, l2long) {
+   let routeURL = 'https://route.api.here.com/routing/7.2/calculateroute.json' +
+   '?waypoint0=' + l1lat + ',' + l1long +
+   '&waypoint1=' + l2lat + ',' + l2long +
+   '&mode=fastest;car;traffic:enabled' +
+   '&app_id=' + hereID +
+   '&app_code=' + hereCode +
+   '&departure=now';
+
+   let routeResult = new Promise((resolve, reject) => {
+     request.get(routeURL, (error, response, body) => {
+       resolve(body);
+     });
+   });
+
+   return routeResult;
+}
 
 function findParking(parking) {
     let lat = parking.Latitude;
